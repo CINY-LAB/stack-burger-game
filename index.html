@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>버거쌓기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- 메인 -->
+  <section id="screen-main" class="screen active">
+    <h1 class="title">버거쌓기</h1>
+    <div id="hero" aria-hidden="true"></div>
+    <div class="panel">
+      <input id="nick" type="text" maxlength="10" placeholder="닉네임 (비우면 아무개)" autocomplete="off">
+      <div class="modes">
+        <button type="button" class="mode active" data-mode="easy">이지</button>
+        <button type="button" class="mode" data-mode="hard">하드</button>
+      </div>
+      <div class="row">
+        <button type="button" id="btn-start" class="big">게임 시작 (Enter)</button>
+      </div>
+      <div class="row">
+        <button type="button" id="btn-records">기록 보기</button>
+        <button type="button" id="btn-sound">소리 켜짐</button>
+      </div>
+      <p class="help">60초 안에 주문을 최대한 많이 완성하세요.<br>
+        &larr; &rarr; 커서 이동 / Space 선택 / Esc 전체 비우기</p>
+    </div>
+  </section>
+
+  <!-- 게임 -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <div><span>남은 시간</span><b id="hud-time">60</b></div>
+      <div><span>점수</span><b id="hud-score">0</b></div>
+      <div><span>완성</span><b id="hud-count">0</b></div>
+      <div><span>콤보</span><b id="hud-combo">0</b></div>
+    </div>
+    <div class="timebar"><i id="timebar"></i></div>
+    <div class="boards">
+      <div class="board">
+        <h2>주문</h2>
+        <div class="plate" id="order"></div>
+      </div>
+      <div class="board">
+        <h2>내 트레이 <button type="button" id="btn-clear">비우기 (Esc)</button></h2>
+        <div class="plate" id="tray"></div>
+      </div>
+    </div>
+    <div id="cells"></div>
+  </section>
+
+  <!-- 결과 -->
+  <section id="screen-result" class="screen">
+    <h2 class="rtitle">시간 종료!</h2>
+    <div class="panel">
+      <div class="bigcount"><b id="r-count">0</b><span>개 완성</span></div>
+      <p>점수 <b id="r-score">0</b> / 최대 콤보 <b id="r-combo">0</b></p>
+      <p id="r-rank"></p>
+      <div class="row">
+        <button type="button" id="btn-retry" class="big">다시하기 (Enter)</button>
+        <button type="button" id="btn-home">메인으로 (Esc)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 기록 -->
+  <section id="screen-records" class="screen">
+    <h2 class="rtitle">기록</h2>
+    <div class="panel">
+      <div class="modes">
+        <button type="button" class="rtab active" data-mode="easy">이지</button>
+        <button type="button" class="rtab" data-mode="hard">하드</button>
+      </div>
+      <table id="rec-table">
+        <thead><tr><th>순위</th><th>닉네임</th><th>점수</th><th>완성</th><th>콤보</th><th>일시</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="row"><button type="button" id="btn-rec-back">돌아가기 (Esc)</button></div>
+    </div>
+  </section>
+
+</main>
+<script src="game.js"></script>
+</body>
+</html>

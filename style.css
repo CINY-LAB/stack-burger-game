@@ -1,0 +1,99 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: #5a3a1a;
+  background: linear-gradient(#fff6d8, #ffe9b0);
+  user-select: none;
+}
+#app { max-width: 980px; margin: 0 auto; padding: 16px; min-height: 100%; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* 색감 보정: 원본 png 는 그대로 두고 CSS filter 로만 밝게 함 */
+.sprite {
+  background-image: url("assets/freeBuns.png");
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: brightness(1.3) saturate(1.35) contrast(1.05);
+  flex: none;
+}
+
+button {
+  font: inherit; font-weight: 700; color: #5a3a1a;
+  background: #fff; border: 2px solid #e8b04a; border-radius: 10px;
+  padding: 8px 16px; cursor: pointer;
+}
+button:hover { background: #fff1c8; }
+button.big { background: #ffb938; font-size: 20px; padding: 12px 28px; }
+button.big:hover { background: #ffc965; }
+input {
+  font: inherit; width: 100%; padding: 10px 12px; text-align: center;
+  border: 2px solid #e8b04a; border-radius: 10px; background: #fffdf4; color: #5a3a1a;
+}
+.panel {
+  max-width: 460px; margin: 0 auto; padding: 18px;
+  background: rgba(255, 255, 255, .7); border-radius: 16px;
+  display: flex; flex-direction: column; gap: 12px; text-align: center;
+}
+.row { display: flex; gap: 10px; justify-content: center; }
+.modes { display: flex; gap: 10px; justify-content: center; }
+.mode, .rtab { min-width: 100px; }
+.mode.active, .rtab.active { background: #ff9f2e; border-color: #e07d00; color: #fff; }
+.help { margin: 0; font-size: 14px; line-height: 1.6; }
+
+/* 메인 */
+.title { text-align: center; font-size: 44px; margin: 4px 0 0; color: #e8741a; }
+#hero { position: relative; height: 400px; margin: 0 auto 8px; width: 240px; }
+#hero .sprite { position: absolute; left: 50%; }
+
+/* 게임 */
+.hud { display: flex; gap: 10px; }
+.hud div {
+  flex: 1; text-align: center; background: rgba(255, 255, 255, .8);
+  border-radius: 12px; padding: 6px;
+}
+.hud span { display: block; font-size: 12px; }
+.hud b { font-size: 28px; }
+.timebar { height: 10px; background: #fff; border-radius: 6px; margin: 8px 0; overflow: hidden; }
+.timebar i { display: block; height: 100%; width: 100%; background: #6cc04a; }
+.timebar i.warn { background: #f0523c; }
+.boards { display: flex; gap: 12px; }
+.board { flex: 1; background: rgba(255, 255, 255, .75); border-radius: 14px; padding: 8px 12px; }
+.board h2 { margin: 0 0 4px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+.board h2 button { padding: 2px 10px; font-size: 12px; }
+.plate {
+  height: 290px; display: flex; align-items: flex-end; justify-content: center; gap: 18px;
+  padding-bottom: 8px; border-bottom: 6px solid #e8c27a;
+}
+.stack { display: flex; flex-direction: column-reverse; align-items: center; }
+.sides { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+#cells { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 12px; }
+.cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
+  height: 104px; padding: 6px 2px; background: #fff; border: 3px solid #f0d9a0; border-radius: 12px;
+  cursor: pointer; font-size: 12px; font-weight: 700;
+}
+.cell.cursor { border-color: #ff7a00; background: #fff1c8; transform: translateY(-4px); box-shadow: 0 4px 0 #ff7a00; }
+.cell .sprite { margin-top: auto; }
+.cell.on { background: #d8f5c2; }
+.flash { animation: flash .25s; }
+@keyframes flash { 50% { background: #ffd0c8; } }
+.pop { animation: pop .3s; }
+@keyframes pop { 50% { transform: scale(1.06); background: #d8f5c2; } }
+
+/* 결과, 기록 */
+.rtitle { text-align: center; font-size: 34px; color: #e8741a; margin: 24px 0 12px; }
+.bigcount b { font-size: 84px; color: #e8741a; }
+.bigcount span { font-size: 24px; margin-left: 6px; }
+#r-rank { margin: 0; font-weight: 700; color: #d9480f; }
+.panel p { margin: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 6px 4px; border-bottom: 1px solid #f0d9a0; }
+td.me { background: #fff1c8; }
+
+@media (max-width: 760px) {
+  .boards { flex-direction: column; }
+  .plate { height: 220px; }
+  .cell { height: 84px; font-size: 10px; }
+}
