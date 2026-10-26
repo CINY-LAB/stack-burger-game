@@ -33,6 +33,7 @@
 
   <!-- 게임 -->
   <section id="screen-game" class="screen">
+    <header class="game-head"><button type="button" id="btn-exit">나가기</button></header>
     <div class="hud">
       <div><span>남은 시간</span><b id="hud-time">60</b></div>
       <div><span>점수</span><b id="hud-score">0</b></div>
@@ -46,10 +47,11 @@
         <div class="plate" id="order"></div>
       </div>
       <div class="board">
-        <h2>내 트레이 <button type="button" id="btn-clear">비우기 (Esc)</button></h2>
+        <h2>내 트레이</h2>
         <div class="plate" id="tray"></div>
       </div>
     </div>
+    <div id="clear-bar">트레이 비우기 (Esc)</div>
     <div id="cells"></div>
   </section>
 

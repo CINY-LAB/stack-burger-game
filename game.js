@@ -12,12 +12,14 @@
     bunTop:    { name: '윗빵',   r: [193, 2, 30, 20] },
     fries:     { name: '감자튀김', r: [5, 35, 21, 28], side: true },
     nuggets:   { name: '치킨너겟', r: [132, 102, 25, 24], side: true },
-    cola:      { name: '콜라',   r: [39, 68, 18, 28], side: true }
+    cola:      { name: '콜라',   r: [39, 68, 18, 28], side: true },
+    wings:     { name: '치킨윙', r: [100, 134, 25, 24], side: true }
   };
-  var CELL_ORDER = ['bunBottom', 'lettuce', 'patty', 'cheese', 'tomato', 'bunTop', 'fries', 'nuggets', 'cola'];
+  var CELL_ORDER = ['bunBottom', 'lettuce', 'patty', 'cheese', 'tomato', 'bunTop', 'fries', 'nuggets', 'cola', 'wings'];
   var INNER = ['lettuce', 'patty', 'cheese', 'tomato'];
-  var SIDES = ['fries', 'nuggets', 'cola'];
-  var MAX_STACK = 12;
+  var SIDES = ['fries', 'nuggets', 'cola', 'wings'];
+  var MAX_STACK = 8; // 빵 2개 + 속재료 6개. 9번째 재료를 올리면 초기화
+  var ASSEMBLE_MS = 500;
   var GAME_SEC = 60;
   var STORE_KEY = 'stackBurger.records';
 
@@ -60,8 +62,8 @@
     o.start(t); o.stop(t + dur + 0.02);
   }
   var sfx = {
-    move:  function () { tone(900, 0, 0.03, 'square', 0.04); },
-    pick:  function () { tone(330, 0, 0.09, 'sine', 0.12); tone(440, 0.04, 0.08, 'sine', 0.08); },
+    move:  function () { tone(900, 0, 0.03, 'square', 0.032); },
+    pick:  function () { tone(330, 0, 0.09, 'sine', 0.096); tone(440, 0.04, 0.08, 'sine', 0.064); },
     reset: function () { tone(110, 0, 0.3, 'sawtooth', 0.1); },
     done:  function () { tone(523, 0, 0.1, 'triangle', 0.14); tone(784, 0.1, 0.16, 'triangle', 0.14); },
     combo: function () { tone(988, 0.22, 0.12, 'triangle', 0.12); tone(1319, 0.32, 0.16, 'triangle', 0.12); },
@@ -81,7 +83,13 @@
 
   // ---------- 메인 햄버거 연출 ----------
   var HERO_LAYERS = ['bunBottom', 'lettuce', 'patty', 'cheese', 'tomato', 'bunTop'];
-  var HERO_SCALE = 6, HERO_CYCLE = 8.5;
+  var HERO_SCALE = 5, HERO_CYCLE = 8.5;
+  // 그림 칸 아래쪽의 빈 줄 수(원본 px). 토마토만 칸 안에서 위아래가 비어 있음
+  var HERO_PAD_BOTTOM = { tomato: 3 };
+  // 재료 사이 간격: 칸 높이가 아니라 실제로 보이는 그림의 아래쪽 끝 기준으로 같은 간격(px)을 둠
+  var HERO_STEP = 44, HERO_STEP_MERGED = 32;
+  // 토마토는 작고 윗빵이 크게 덮어서 같은 간격이어도 좁아 보임. 윗빵만 위로 더 띄움(px)
+  var HERO_EXTRA = { bunTop: 18 }, HERO_EXTRA_MERGED = 10;
   var heroEls = [], heroRaf = 0, heroT0 = 0;
 
   function heroBuild() {
@@ -95,23 +103,22 @@
   }
   function heroFrame(now) {
     var t = ((now - heroT0) / 1000) % HERO_CYCLE;
-    var gap = 22, y = 0;
+    var q = 0;
     // 3.8초 이후 간격이 줄며 합쳐지고, 7.4초부터 사라짐
-    if (t > 3.8) { var q = Math.min(1, (t - 3.8) / 0.5); gap = 22 - q * 24; }
+    if (t > 3.8) { q = Math.min(1, (t - 3.8) / 0.5); }
+    var step = HERO_STEP - (HERO_STEP - HERO_STEP_MERGED) * q;
     var bounce = 0;
     if (t > 4.3 && t < 4.7) bounce = Math.sin((t - 4.3) / 0.4 * Math.PI) * 6;
     var fade = t > 7.4 ? Math.max(0, 1 - (t - 7.4) / 0.9) : 1;
     HERO_LAYERS.forEach(function (k, i) {
-      var h = ITEMS[k].r[3] * HERO_SCALE, w = ITEMS[k].r[2] * HERO_SCALE;
       var start = 0.3 + i * 0.6, p = Math.min(1, Math.max(0, (t - start) / 0.5));
       var ease = 1 - Math.pow(1 - p, 3);
       var drop = (1 - ease) * 300;
       var e = heroEls[i];
-      e.style.bottom = y + 'px';
+      var extra = (HERO_EXTRA[k] || 0) + ((HERO_EXTRA_MERGED - (HERO_EXTRA[k] || 0)) * q) * (HERO_EXTRA[k] ? 1 : 0);
+      e.style.bottom = (i * step + extra - (HERO_PAD_BOTTOM[k] || 0) * HERO_SCALE) + 'px';
       e.style.opacity = p * fade;
       e.style.transform = 'translate(-50%,' + (-drop + bounce * (i / 5) * -1) + 'px)';
-      y += h * 0.55 + gap;
-      void w;
     });
     heroRaf = requestAnimationFrame(heroFrame);
   }
@@ -133,7 +140,7 @@
     var o, tries = 0;
     do {
       var hasBurger = Math.random() < 0.75;
-      var sideCnt = rnd(4), sides = SIDES.slice();
+      var sideCnt = rnd(SIDES.length + 1), sides = SIDES.slice();
       var picked = [];
       while (picked.length < sideCnt) picked.push(sides.splice(rnd(sides.length), 1)[0]);
       var inner = [];
@@ -161,7 +168,7 @@
       score: 0, count: 0, combo: 0, maxCombo: 0,
       cells: CELL_ORDER.slice(), cursor: 0,
       order: null, stack: [], sides: [], burgerDone: false,
-      endAt: performance.now() + GAME_SEC * 1000, lastSec: GAME_SEC, timer: 0, over: false
+      busy: false, endAt: performance.now() + GAME_SEC * 1000, lastSec: GAME_SEC, timer: 0, over: false
     };
     show('game');
     nextOrder(true);
@@ -180,7 +187,7 @@
   }
 
   function tick() {
-    if (!G || G.over) return;
+    if (!G || G.over || G.busy) return;
     var left = Math.max(0, G.endAt - performance.now());
     var sec = Math.ceil(left / 1000);
     $('hud-time').textContent = sec;
@@ -200,29 +207,45 @@
     $('hud-combo').textContent = G.combo;
   }
 
+  var OVERLAP = 0.7; // 재료끼리 겹치는 비율 (간격 없이 붙임)
+
   function stackEl(arr, s) {
     var st = document.createElement('div');
     st.className = 'stack';
     arr.forEach(function (k, i) {
       var e = sprite(k, s);
-      if (i > 0) e.style.marginBottom = -Math.round(ITEMS[k].r[3] * s * 0.45) + 'px';
+      if (i > 0) e.style.marginBottom = -Math.round(ITEMS[k].r[3] * s * OVERLAP) + 'px';
       st.appendChild(e);
     });
     return st;
   }
-  function sidesEl(arr, s) {
-    var d = document.createElement('div');
-    d.className = 'sides';
-    SIDES.forEach(function (k) { if (arr.indexOf(k) >= 0) d.appendChild(sprite(k, s)); });
-    return d;
+  // 햄버거 배율: 가장 큰 경우(8층, 높이가 큰 재료 6개)가 왼쪽 반에 들어가도록 고정 계산함
+  // 햄버거 크기와 상관없이 같은 값을 쓰므로 트레이 크기가 변하지 않음
+  function burgerScale(plate) {
+    var hh = ITEMS.bunBottom.r[3] + (ITEMS.cheese.r[3] * 6 + ITEMS.bunTop.r[3]) * (1 - OVERLAP);
+    return Math.min(plate.clientWidth * 0.43 / 31, plate.clientHeight * 0.8 / hh, 4);
+  }
+  // 트레이: 왼쪽 햄버거, 오른쪽 2x2 사이드(위 왼쪽부터 채움)
+  function fillPlate(plate, burger, sides, s, ss, assemble) {
+    plate.innerHTML = '';
+    var left = document.createElement('div'), right = document.createElement('div');
+    left.className = 'half'; right.className = 'quad';
+    if (burger.length) left.appendChild(stackEl(burger, s));
+    sides.forEach(function (k) {
+      var c = document.createElement('div');
+      c.appendChild(sprite(k, ss));
+      right.appendChild(c);
+    });
+    plate.classList.toggle('assemble', !!assemble);
+    plate.appendChild(left); plate.appendChild(right);
   }
   function renderBoards() {
     var o = G.order, op = $('order'), tp = $('tray');
-    op.innerHTML = ''; tp.innerHTML = '';
-    if (o.hasBurger) op.appendChild(stackEl(['bunBottom'].concat(o.inner, ['bunTop']), 3));
-    if (o.sides.length) op.appendChild(sidesEl(o.sides, 2));
-    if (G.stack.length) tp.appendChild(stackEl(G.stack, 3));
-    if (G.sides.length) tp.appendChild(sidesEl(G.sides, 2));
+    var ob = o.hasBurger ? ['bunBottom'].concat(o.inner, ['bunTop']) : [];
+    var s = burgerScale(op);
+    var ss = Math.min(op.clientWidth * 0.5 * 0.86 / 2 / 25, op.clientHeight * 0.84 / 2 / 28) * 0.9;
+    fillPlate(op, ob, o.sides, s, ss, false);
+    fillPlate(tp, G.stack, G.sides, s, ss, G.busy);
   }
   function renderCells() {
     var box = $('cells');
@@ -235,7 +258,10 @@
       var l = document.createElement('span');
       l.textContent = ITEMS[k].name;
       c.appendChild(l);
-      c.addEventListener('click', function () { choose(i); });
+      c.addEventListener('click', function () {
+        if (G && !G.over && !G.busy) { G.cursor = i; updateCursor(); } // 클릭한 칸으로 커서도 이동
+        choose(i);
+      });
       box.appendChild(c);
     });
   }
@@ -245,6 +271,7 @@
   }
 
   function moveCursor(d) {
+    if (G.busy) return;
     var n = G.cells.length;
     G.cursor = (G.cursor + d + n) % n;
     updateCursor();
@@ -253,48 +280,66 @@
 
   // 선택: 커서 위치와 무관하게 idx 칸을 고름 (키보드는 커서 칸, 마우스는 클릭한 칸)
   function choose(idx) {
-    if (!G || G.over) return;
+    if (!G || G.over || G.busy) return;
     var k = G.cells[idx];
     if (ITEMS[k].side) {
       var p = G.sides.indexOf(k);
       if (p >= 0) G.sides.splice(p, 1); else G.sides.push(k);
       sfx.pick();
-    } else if (k === 'bunTop') {
+    } else {
       if (G.burgerDone) return;
       G.stack.push(k);
-      judgeBurger();
-    } else {
-      if (G.burgerDone || G.stack.length >= MAX_STACK - 1) return;
-      G.stack.push(k);
-      sfx.pick();
+      if ((G.stack.length === 1 && k !== 'bunBottom') || G.stack.length > MAX_STACK) {
+        resetBurger(); // 첫 재료가 아랫빵이 아니거나 9번째 재료
+      } else if (k === 'bunTop') {
+        judgeBurger();
+      } else {
+        sfx.pick();
+      }
     }
     renderBoards();
     checkComplete();
   }
 
-  // 윗빵을 올릴 때만 비교. 다르면 햄버거만 초기화, 감점 없음, 콤보 0
+  // 햄버거만 비움(사이드 유지), 감점 없음, 콤보 0
+  function resetBurger() {
+    G.stack = [];
+    G.combo = 0;
+    renderHud();
+    sfx.reset();
+    var t = $('tray');
+    t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+  }
+
+  // 윗빵을 올릴 때 비교. 같으면 완성 표시만 하고, 주문 완성은 checkComplete 에서 처리
   function judgeBurger() {
     var want = ['bunBottom'].concat(G.order.inner, ['bunTop']);
     var ok = want.length === G.stack.length && want.every(function (k, i) { return k === G.stack[i]; });
-    if (ok) {
-      G.burgerDone = true;
-      sfx.pick();
-    } else {
-      G.stack = [];
-      G.combo = 0;
-      renderHud();
-      sfx.reset();
-      var t = $('tray');
-      t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
-    }
+    if (!ok) { resetBurger(); return; }
+    G.burgerDone = true;
+    sfx.pick();
   }
 
+  // 햄버거와 사이드가 모두 맞으면 타이머를 멈추고 합쳐지는 연출 후 점수 반영
   function checkComplete() {
     var o = G.order;
+    if (G.busy) return;
     if (o.hasBurger && !G.burgerDone) return;
     if (G.sides.length !== o.sides.length) return;
     for (var i = 0; i < o.sides.length; i++) if (G.sides.indexOf(o.sides[i]) < 0) return;
-    // 주문 완성
+    var g = G, from = performance.now();
+    g.busy = true;
+    renderBoards();
+    setTimeout(function () {
+      if (G !== g || g.over) return;
+      g.endAt += performance.now() - from;
+      g.busy = false;
+      completeOrder();
+    }, ASSEMBLE_MS);
+  }
+
+  function completeOrder() {
+    var o = G.order;
     var pts = ((o.hasBurger ? o.inner.length : 0) + o.sides.length) * 10;
     G.combo++;
     if (G.combo > G.maxCombo) G.maxCombo = G.combo;
@@ -304,13 +349,13 @@
     renderHud();
     sfx.done();
     if (bonus) sfx.combo();
+    nextOrder();
     var od = $('order');
     od.classList.remove('pop'); void od.offsetWidth; od.classList.add('pop');
-    nextOrder();
   }
 
   function clearTray() {
-    if (!G || G.over) return;
+    if (!G || G.over || G.busy) return;
     G.stack = []; G.sides = []; G.burgerDone = false;
     renderBoards();
     sfx.reset();
@@ -400,8 +445,14 @@
   $('btn-start').addEventListener('click', startGame);
   $('btn-records').addEventListener('click', function () { recMode = selectedMode; lastRecAt = 0; renderRecords(); show('records'); });
   $('btn-rec-back').addEventListener('click', function () { show('main'); });
-  $('btn-clear').addEventListener('click', function () { clearTray(); this.blur(); });
+  $('clear-bar').addEventListener('click', clearTray);
   $('btn-retry').addEventListener('click', startGame);
+  // 게임 중 나가기: 기록 저장 없이 메인으로 돌아감
+  $('btn-exit').addEventListener('click', function () {
+    if (G && !G.over) { G.over = true; clearInterval(G.timer); }
+    this.blur();
+    show('main');
+  });
   $('btn-home').addEventListener('click', function () { show('main'); });
 
   // ---------- 키보드 ----------
@@ -422,6 +473,8 @@
       if (k === 'Escape') { show('main'); }
     }
   });
+
+  window.addEventListener('resize', function () { if (G && current === 'game' && !G.over) renderBoards(); });
 
   syncSoundBtn();
   show('main');

@@ -21,10 +21,11 @@ body {
 
 button {
   font: inherit; font-weight: 700; color: #5a3a1a;
-  background: #fff; border: 2px solid #e8b04a; border-radius: 10px;
+  background: #fff; border: 0; border-radius: 10px; box-shadow: none;
   padding: 8px 16px; cursor: pointer;
 }
 button:hover { background: #fff1c8; }
+button:active { transform: translateY(1px); }
 button.big { background: #ffb938; font-size: 20px; padding: 12px 28px; }
 button.big:hover { background: #ffc965; }
 input {
@@ -43,11 +44,12 @@ input {
 .help { margin: 0; font-size: 14px; line-height: 1.6; }
 
 /* 메인 */
-.title { text-align: center; font-size: 44px; margin: 4px 0 0; color: #e8741a; }
-#hero { position: relative; height: 400px; margin: 0 auto 8px; width: 240px; }
-#hero .sprite { position: absolute; left: 50%; }
+.title { position: relative; z-index: 2; text-align: center; font-size: 44px; margin: 4px 0 0; color: #e8741a; }
+#hero { position: relative; overflow: hidden; height: 440px; margin: 0 auto 8px; width: 240px; }
+#hero .sprite { position: absolute; left: 50%; transform-origin: 50% 100%; }
 
 /* 게임 */
+.game-head { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .hud { display: flex; gap: 10px; }
 .hud div {
   flex: 1; text-align: center; background: rgba(255, 255, 255, .8);
@@ -61,14 +63,31 @@ input {
 .boards { display: flex; gap: 12px; }
 .board { flex: 1; background: rgba(255, 255, 255, .75); border-radius: 14px; padding: 8px 12px; }
 .board h2 { margin: 0 0 4px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-.board h2 button { padding: 2px 10px; font-size: 12px; }
+/* 트레이: freeBuns.png 맨 아래 갈색 트레이(4,211,88x58)를 배경으로 씀. 왼쪽 햄버거 / 오른쪽 2x2 사이드 */
 .plate {
-  height: 290px; display: flex; align-items: flex-end; justify-content: center; gap: 18px;
-  padding-bottom: 8px; border-bottom: 6px solid #e8c27a;
+  position: relative; width: 100%; aspect-ratio: 88 / 58;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 7% 6%;
 }
+.plate::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background: url("assets/freeBuns.png") 2% 98.6% / 327.27% 468.97% no-repeat;
+  image-rendering: pixelated;
+  filter: brightness(1.3) saturate(1.35) contrast(1.05);
+}
+.plate > * { position: relative; z-index: 1; }
+.half { min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.quad { min-width: 0; min-height: 0; display: grid; grid-template: minmax(0, 1fr) minmax(0, 1fr) / minmax(0, 1fr) minmax(0, 1fr); place-items: center; }
 .stack { display: flex; flex-direction: column-reverse; align-items: center; }
-.sides { display: flex; flex-direction: column; gap: 6px; align-items: center; }
-#cells { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 12px; }
+/* 주문 영역: 트레이 이미지 없이 흰 배경 */
+#order { background: #fff; border-radius: 12px; }
+#order::before { display: none; }
+/* 비우기 띠: 클릭하면 트레이 비움 (버튼 모양 아님) */
+#clear-bar {
+  margin-top: 10px; padding: 8px; text-align: center; font-size: 13px; font-weight: 700;
+  color: #a8782e; background: rgba(255, 255, 255, .55); border-radius: 8px; cursor: pointer;
+}
+#clear-bar:hover { background: rgba(255, 241, 200, .9); }
+#cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin-top: 12px; }
 .cell {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
   height: 104px; padding: 6px 2px; background: #fff; border: 3px solid #f0d9a0; border-radius: 12px;
@@ -78,9 +97,9 @@ input {
 .cell .sprite { margin-top: auto; }
 .cell.on { background: #d8f5c2; }
 .flash { animation: flash .25s; }
-@keyframes flash { 50% { background: #ffd0c8; } }
+@keyframes flash { 50% { box-shadow: 0 0 0 6px #ff7a60; } }
 .pop { animation: pop .3s; }
-@keyframes pop { 50% { transform: scale(1.06); background: #d8f5c2; } }
+@keyframes pop { 50% { transform: scale(1.04); } }
 
 /* 결과, 기록 */
 .rtitle { text-align: center; font-size: 34px; color: #e8741a; margin: 24px 0 12px; }
@@ -94,6 +113,16 @@ td.me { background: #fff1c8; }
 
 @media (max-width: 760px) {
   .boards { flex-direction: column; }
-  .plate { height: 220px; }
   .cell { height: 84px; font-size: 10px; }
 }
+
+/* 주문 완성 연출: 재료가 떨어져 합쳐짐 */
+.plate.assemble .sprite { animation: drop .45s cubic-bezier(.3, 1.4, .5, 1) both; }
+.plate.assemble .stack > .sprite:nth-child(2) { animation-delay: .08s; }
+.plate.assemble .stack > .sprite:nth-child(3) { animation-delay: .16s; }
+.plate.assemble .stack > .sprite:nth-child(4) { animation-delay: .24s; }
+.plate.assemble .stack > .sprite:nth-child(5) { animation-delay: .32s; }
+.plate.assemble .stack > .sprite:nth-child(6) { animation-delay: .4s; }
+.plate.assemble .stack > .sprite:nth-child(7) { animation-delay: .48s; }
+.plate.assemble .stack > .sprite:nth-child(8) { animation-delay: .56s; }
+@keyframes drop { from { transform: translateY(-140px); opacity: 0; } to { transform: none; opacity: 1; } }
